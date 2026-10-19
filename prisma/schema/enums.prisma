@@ -1,0 +1,22 @@
+/// Copia exacta del enum de la aplicacion web: los JSON viajan entre
+/// sistemas sin traduccion.
+enum CategoriaRecurso {
+  PERSONAL
+  ALIMENTOS
+  AGUA_POTABLE
+  MEDICAMENTOS
+  ABRIGO_Y_REFUGIO
+  EQUIPAMIENTO
+  TRANSPORTE_Y_LOGISTICA
+  OTRO
+}
+
+/// Copia exacta del enum de la aplicacion web. El orden importa: la posicion
+/// (1 a 4) es el nivel de certificacion que se requiere para actuar como
+/// lote principal en una emergencia de esa gravedad.
+enum NivelGravedad {
+  BAJA
+  MEDIA
+  ALTA
+  CRITICA
+}

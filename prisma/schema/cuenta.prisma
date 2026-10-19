@@ -1,0 +1,34 @@
+/// Credenciales de acceso a la API.
+///
+/// Quienes consumen el Sistema Nacional son sobre todo sistemas (Bonita y la
+/// aplicacion web), no personas: por eso no hay nombre, telefono ni refresh
+/// token. Las cuentas ONG son las unicas asociadas a una organizacion.
+model Cuenta {
+  id    Int    @id @default(autoincrement())
+  email String @unique @db.VarChar(120)
+
+  /// Hash bcrypt, nunca la contrasena en claro.
+  passwordHash String @map("password_hash") @db.VarChar(100)
+
+  rol RolCuenta
+
+  organizacionId Int?          @map("organizacion_id")
+  organizacion   Organizacion? @relation(fields: [organizacionId], references: [id])
+
+  activa Boolean @default(true)
+
+  fechaCreacion      DateTime @default(now()) @map("fecha_creacion")
+  fechaActualizacion DateTime @updatedAt @map("fecha_actualizacion")
+
+  @@index([organizacionId])
+  @@map("cuentas")
+}
+
+enum RolCuenta {
+  /// Autoridad del Sistema Nacional.
+  ADMIN
+  /// Cuenta tecnica de un sistema de RescueSync (Bonita, aplicacion web).
+  SERVICIO
+  /// ONG u organismo registrado por onboarding. Opera solo sobre lo propio.
+  ONG
+}

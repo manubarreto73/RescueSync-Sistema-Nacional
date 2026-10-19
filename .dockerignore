@@ -1,0 +1,10 @@
+node_modules
+dist
+coverage
+.git
+.gitignore
+.env
+.env.*
+*.log
+docker-compose*.yml
+postman

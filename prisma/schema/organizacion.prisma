@@ -1,0 +1,41 @@
+/// ONG u organismo de rescate registrado en el Sistema Nacional.
+///
+/// `codigoNacional` es el identificador que comparten todos los sistemas de
+/// RescueSync: la aplicacion web lo guarda en su propia tabla de
+/// organizaciones y lo manda en cada validacion y compromiso.
+model Organizacion {
+  id             Int              @id @default(autoincrement())
+  codigoNacional String           @unique @map("codigo_nacional") @db.VarChar(20)
+  nombre         String           @unique @db.VarChar(150)
+  tipo           TipoOrganizacion
+  /// CUIT sin guiones.
+  cuit           String           @unique @db.VarChar(11)
+
+  estado EstadoOrganizacion @default(HABILITADA)
+
+  fechaAlta          DateTime @default(now()) @map("fecha_alta")
+  fechaActualizacion DateTime @updatedAt @map("fecha_actualizacion")
+
+  cuentas         Cuenta[]
+  certificaciones OrganizacionCertificacion[]
+  recursos        Recurso[]
+  compromisos     Compromiso[]
+
+  @@index([estado])
+  @@map("organizaciones")
+}
+
+/// Solo los actores que aportan recursos. El prefijo del codigo nacional
+/// sale de aca: ONG-0001, ORG-0002.
+enum TipoOrganizacion {
+  ONG
+  ORGANISMO_RESCATE
+}
+
+enum EstadoOrganizacion {
+  /// Registrada, a la espera de aprobacion (circuito previsto para proximas entregas).
+  PENDIENTE
+  HABILITADA
+  /// Inhabilitada por la autoridad: sus ofertas solo califican como apoyo secundario.
+  SUSPENDIDA
+}

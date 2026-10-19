@@ -1,0 +1,64 @@
+# Entorno de desarrollo local. En la nube (Railway) no se usa: la plataforma
+# construye el Dockerfile y provee su propio PostgreSQL.
+#
+# Pensado para Docker Engine dentro de WSL2: los comandos se ejecutan desde
+# una terminal de Ubuntu, parado en /mnt/c/...
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: sistema-nacional-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-nacional}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nacional}
+      POSTGRES_DB: ${POSTGRES_DB:-sistema_nacional}
+    ports:
+      - '${POSTGRES_PORT:-5435}:5432'
+    volumes:
+      # Volumen nombrado, no bind mount: un bind mount contra /mnt/c corrompe Postgres.
+      - postgres_data:/var/lib/postgresql/data
+      # Crea la base de los tests e2e la primera vez que se levanta el contenedor.
+      - ./docker/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-nacional} -d ${POSTGRES_DB:-sistema_nacional}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nacional-net
+
+  api:
+    build:
+      context: .
+      target: development
+    container_name: sistema-nacional-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Dentro de la red de Docker el host es el nombre del servicio.
+      DATABASE_URL: postgresql://${POSTGRES_USER:-nacional}:${POSTGRES_PASSWORD:-nacional}@postgres:5432/${POSTGRES_DB:-sistema_nacional}?schema=public
+    # -p tsconfig.docker.json activa el watcher por polling: los eventos
+    # inotify no cruzan el puente entre el filesystem de Windows y el de Linux.
+    command: sh -c "npx prisma migrate deploy && npx prisma generate && npm run db:seed && npm run start:dev -- -p tsconfig.docker.json"
+    ports:
+      - '${PORT:-3001}:${PORT:-3001}'
+    volumes:
+      - ./src:/app/src
+      - ./prisma:/app/prisma
+      # node_modules del contenedor (cliente de Prisma para linux-musl) no se
+      # pisa con el del host.
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - nacional-net
+
+volumes:
+  postgres_data:
+
+networks:
+  nacional-net:
+    driver: bridge

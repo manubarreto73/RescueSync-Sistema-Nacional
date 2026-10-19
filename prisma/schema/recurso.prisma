@@ -1,0 +1,33 @@
+/// Inventario de una organizacion en una categoria.
+///
+/// Un unico registro por (organizacion, categoria): corresponde 1 a 1 con la
+/// categoria de los lotes de la aplicacion web, asi el compromiso de una
+/// linea de oferta sabe exactamente que fila bloquear.
+///
+/// Lo disponible no se guarda: es cantidadTotal - cantidadComprometida.
+/// Guardarlo seria una tercera columna que mantener sincronizada bajo lock.
+///
+/// La migracion agrega un CHECK (0 <= comprometida <= total) que Prisma no
+/// sabe expresar: es la red de seguridad contra la sobre-asignacion aunque
+/// algun camino del codigo se saltee el bloqueo.
+model Recurso {
+  id Int @id @default(autoincrement())
+
+  organizacionId Int          @map("organizacion_id")
+  organizacion   Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+
+  categoria CategoriaRecurso
+  /// personas, raciones, litros, unidades. Texto libre, igual que en los lotes.
+  unidad    String           @db.VarChar(30)
+
+  cantidadTotal        Int @map("cantidad_total")
+  cantidadComprometida Int @default(0) @map("cantidad_comprometida")
+
+  items CompromisoItem[]
+
+  fechaActualizacion DateTime @updatedAt @map("fecha_actualizacion")
+
+  @@unique([organizacionId, categoria])
+  @@index([categoria])
+  @@map("recursos")
+}

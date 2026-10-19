@@ -1,0 +1,1156 @@
+{
+  "info": {
+    "name": "Sistema Nacional API",
+    "description": "Sistema Nacional de Gestion de Recursos y Riesgos (RescueSync - Sistemas Distribuidos 2026).\n\n## Como usarla\n\n1. Elegir el entorno **Sistema Nacional - Local** o **Sistema Nacional - Railway** (ambos en la carpeta `postman/`).\n2. Ejecutar **Auth > Login servicio (Bonita)**: guarda el token en `accessToken` y el resto de los requests ya salen autenticados.\n3. Para recorrer todo, usar **Run collection**: las carpetas estan en el orden del proceso y cada request verifica su respuesta.\n\nLa carpeta **Flujo del proyecto** reproduce las llamadas que hace Bonita: comprometer los recursos de las ONGs adjudicadas y cerrar el proyecto. Cada corrida usa una referencia de proyecto nueva, asi se puede ejecutar las veces que haga falta.\n\n## Cuentas del seed\n\n| Email | Rol | Password (entorno local) |\n|---|---|---|\n| bonita@rescuesync.ar | SERVICIO | Bonita2026! |\n| app-web@rescuesync.ar | SERVICIO | AppWeb2026! |\n| admin@sistemanacional.gob.ar | ADMIN | Nacional2026! |\n| contacto@cruzsolidaria.org | ONG (ONG-0001) | Rescue2026! |\n\nEn Railway las contrasenas de las cuentas de servicio son las de las variables `SEED_*_PASSWORD` del servicio.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001/api/v1"
+    },
+    {
+      "key": "emailServicio",
+      "value": "bonita@rescuesync.ar"
+    },
+    {
+      "key": "passwordServicio",
+      "value": "Bonita2026!"
+    },
+    {
+      "key": "emailOng",
+      "value": "contacto@cruzsolidaria.org"
+    },
+    {
+      "key": "passwordOng",
+      "value": "Rescue2026!"
+    },
+    {
+      "key": "codigoOng",
+      "value": "ONG-0001"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "tokenOng",
+      "value": ""
+    },
+    {
+      "key": "codigoOnboarding",
+      "value": ""
+    },
+    {
+      "key": "emailOnboarding",
+      "value": ""
+    },
+    {
+      "key": "proyectoRef",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Estado de la API",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('PostgreSQL arriba', () => pm.expect(pm.response.json().info.postgres.status).to.eql('up'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "description": "Login con JWT. Solo access token: cuando vence, se vuelve a hacer login.",
+      "item": [
+        {
+          "name": "Login servicio (Bonita)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{emailServicio}}\",\n  \"password\": \"{{passwordServicio}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Devuelve un Bearer token', () => {",
+                  "  pm.expect(body.tokenType).to.eql('Bearer');",
+                  "  pm.expect(body.accessToken).to.be.a('string');",
+                  "});",
+                  "pm.collectionVariables.set('accessToken', body.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login ONG",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{emailOng}}\",\n  \"password\": \"{{passwordOng}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tokenOng', pm.response.json().accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login con credenciales invalidas (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{emailServicio}}\",\n  \"password\": \"incorrecta123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401', () => pm.response.to.have.status(401));",
+                  "pm.test('Mensaje generico', () => pm.expect(pm.response.json().message).to.eql('Credenciales invalidas'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Onboarding",
+      "description": "Registro de ONGs. Publico: crea la organizacion y su cuenta de acceso.",
+      "item": [
+        {
+          "name": "Registrar ONG",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/onboarding/ong",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "onboarding",
+                "ong"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"{{nombreOnboarding}}\",\n  \"tipo\": \"ONG\",\n  \"cuit\": \"{{cuitOnboarding}}\",\n  \"email\": \"{{emailOnboarding}}\",\n  \"password\": \"Postman2026!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Datos unicos por corrida, para poder ejecutar la coleccion varias veces.",
+                  "const sufijo = Date.now().toString().slice(-8);",
+                  "pm.collectionVariables.set('nombreOnboarding', 'ONG Postman ' + sufijo);",
+                  "pm.collectionVariables.set('cuitOnboarding', '30' + sufijo + '9');",
+                  "pm.collectionVariables.set('emailOnboarding', 'postman' + sufijo + '@demo.ar');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('Queda habilitada con codigo nacional', () => {",
+                  "  pm.expect(body.estado).to.eql('HABILITADA');",
+                  "  pm.expect(body.codigoNacional).to.match(/^ONG-\\d{4,}$/);",
+                  "});",
+                  "pm.collectionVariables.set('codigoOnboarding', body.codigoNacional);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar ONG con email repetido (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/onboarding/ong",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "onboarding",
+                "ong"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Otra ONG {{cuitOnboarding}}\",\n  \"cuit\": \"30000000001\",\n  \"email\": \"{{emailOnboarding}}\",\n  \"password\": \"Postman2026!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Organizaciones",
+      "description": "Catalogo y consulta: ONGs habilitadas y sus certificaciones vigentes.",
+      "item": [
+        {
+          "name": "Listar ONGs habilitadas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/organizaciones?estado=HABILITADA&page=0&size=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizaciones"
+              ],
+              "query": [
+                {
+                  "key": "estado",
+                  "value": "HABILITADA"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('Solo habilitadas', () => {",
+                  "  pm.response.json().content.forEach((o) => pm.expect(o.estado).to.eql('HABILITADA'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Detalle con certificaciones vigentes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/organizaciones/{{codigoOng}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizaciones",
+                "{{codigoOng}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('Incluye certificaciones', () => pm.expect(pm.response.json().certificaciones).to.be.an('array'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Detalle de la propia organizacion (cuenta ONG)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/organizaciones/{{codigoOng}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizaciones",
+                "{{codigoOng}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOng}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Detalle de otra organizacion (cuenta ONG, 403)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/organizaciones/ORG-0002",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizaciones",
+                "ORG-0002"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOng}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Organizacion inexistente (404)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/organizaciones/ONG-9999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizaciones",
+                "ONG-9999"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sin token (401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/organizaciones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizaciones"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Recursos",
+      "description": "Inventario por organizacion. Lo usa la pantalla \"Gestionar inventario\" de la aplicacion web.",
+      "item": [
+        {
+          "name": "Consultar inventario",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/organizaciones/{{codigoOng}}/recursos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizaciones",
+                "{{codigoOng}}",
+                "recursos"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('disponible = total - comprometido', () => {",
+                  "  pm.response.json().recursos.forEach((r) =>",
+                  "    pm.expect(r.disponible).to.eql(r.cantidadTotal - r.cantidadComprometida));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cargar inventario de la ONG registrada",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/organizaciones/{{codigoOnboarding}}/recursos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizaciones",
+                "{{codigoOnboarding}}",
+                "recursos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recursos\": [\n    {\n      \"categoria\": \"PERSONAL\",\n      \"unidad\": \"personas\",\n      \"cantidadTotal\": 12\n    },\n    {\n      \"categoria\": \"AGUA_POTABLE\",\n      \"unidad\": \"litros\",\n      \"cantidadTotal\": 3000\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('Dos categorias cargadas', () => pm.expect(pm.response.json().recursos).to.have.length(2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Editar inventario ajeno (cuenta ONG, 403)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/organizaciones/ORG-0002/recursos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizaciones",
+                "ORG-0002",
+                "recursos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recursos\": [\n    {\n      \"categoria\": \"PERSONAL\",\n      \"unidad\": \"personas\",\n      \"cantidadTotal\": 1\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOng}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Validaciones",
+      "description": "Validacion por niveles de competencia. La invoca Bonita al vencer la convocatoria. Nunca rechaza: cada linea vuelve PRINCIPAL o APOYO_SECUNDARIO.",
+      "item": [
+        {
+          "name": "Validar ofertas",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/validaciones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "validaciones"
+              ]
+            },
+            "description": "Linea 1: certificacion suficiente (PRINCIPAL). Linea 2: nivel bajo. Linea 3: certificacion vencida. Linea 4: ONG suspendida. Las tres ultimas salen APOYO_SECUNDARIO.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gravedad\": \"ALTA\",\n  \"lineas\": [\n    {\n      \"lineaId\": 1,\n      \"codigoNacional\": \"ONG-0001\",\n      \"categoria\": \"PERSONAL\",\n      \"cantidad\": 5\n    },\n    {\n      \"lineaId\": 2,\n      \"codigoNacional\": \"ONG-0003\",\n      \"categoria\": \"PERSONAL\",\n      \"cantidad\": 3\n    },\n    {\n      \"lineaId\": 3,\n      \"codigoNacional\": \"ONG-0003\",\n      \"categoria\": \"MEDICAMENTOS\",\n      \"cantidad\": 50\n    },\n    {\n      \"lineaId\": 4,\n      \"codigoNacional\": \"ONG-0004\",\n      \"categoria\": \"ALIMENTOS\",\n      \"cantidad\": 200\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const [principal, nivelBajo, vencida, suspendida] = pm.response.json().resultados;",
+                  "pm.test('Linea 1 es PRINCIPAL', () => pm.expect(principal.caracter).to.eql('PRINCIPAL'));",
+                  "pm.test('Las demas son APOYO_SECUNDARIO, sin rechazo', () => {",
+                  "  [nivelBajo, vencida, suspendida].forEach((r) => pm.expect(r.caracter).to.eql('APOYO_SECUNDARIO'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Validar con una cuenta ONG (403)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/validaciones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "validaciones"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gravedad\": \"BAJA\",\n  \"lineas\": [\n    {\n      \"lineaId\": 1,\n      \"codigoNacional\": \"ONG-0001\",\n      \"categoria\": \"PERSONAL\",\n      \"cantidad\": 1\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenOng}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Flujo del proyecto (Bonita)",
+      "description": "Compromiso con bloqueo transaccional (eslabon 6) y cierre con liberacion de recursos (eslabon 7). Ejecutar en orden.",
+      "item": [
+        {
+          "name": "1. Comprometer recursos de las ONGs adjudicadas",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/proyectos/{{proyectoRef}}/compromisos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "proyectos",
+                "{{proyectoRef}}",
+                "compromisos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gravedad\": \"ALTA\",\n  \"compromisos\": [\n    {\n      \"codigoNacional\": \"ONG-0001\",\n      \"items\": [\n        {\n          \"categoria\": \"PERSONAL\",\n          \"cantidad\": 5\n        },\n        {\n          \"categoria\": \"ALIMENTOS\",\n          \"cantidad\": 600\n        }\n      ]\n    },\n    {\n      \"codigoNacional\": \"ORG-0002\",\n      \"items\": [\n        {\n          \"categoria\": \"PERSONAL\",\n          \"cantidad\": 4\n        }\n      ]\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Referencia nueva por corrida: hace las veces del caseId de Bonita.",
+                  "pm.collectionVariables.set('proyectoRef', 'postman-' + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('Proyecto en ejecucion con dos compromisos activos', () => {",
+                  "  pm.expect(body.estado).to.eql('EN_EJECUCION');",
+                  "  pm.expect(body.compromisos).to.have.length(2);",
+                  "  body.compromisos.forEach((c) => pm.expect(c.estado).to.eql('ACTIVO'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Reintento identico (idempotente)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/proyectos/{{proyectoRef}}/compromisos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "proyectos",
+                "{{proyectoRef}}",
+                "compromisos"
+              ]
+            },
+            "description": "Simula que Bonita reintenta tras un timeout: no vuelve a comprometer.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gravedad\": \"ALTA\",\n  \"compromisos\": [\n    {\n      \"codigoNacional\": \"ONG-0001\",\n      \"items\": [\n        {\n          \"categoria\": \"PERSONAL\",\n          \"cantidad\": 5\n        },\n        {\n          \"categoria\": \"ALIMENTOS\",\n          \"cantidad\": 600\n        }\n      ]\n    },\n    {\n      \"codigoNacional\": \"ORG-0002\",\n      \"items\": [\n        {\n          \"categoria\": \"PERSONAL\",\n          \"cantidad\": 4\n        }\n      ]\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201', () => pm.response.to.have.status(201));",
+                  "pm.test('Siguen siendo dos compromisos', () => pm.expect(pm.response.json().compromisos).to.have.length(2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3. Inventario por debajo de lo comprometido (409)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/organizaciones/ONG-0001/recursos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizaciones",
+                "ONG-0001",
+                "recursos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recursos\": [\n    {\n      \"categoria\": \"PERSONAL\",\n      \"unidad\": \"personas\",\n      \"cantidadTotal\": 1\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409', () => pm.response.to.have.status(409));",
+                  "pm.test('Informa el conflicto', () => pm.expect(pm.response.json().conflictos).to.have.length(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4. Stock insuficiente (409, todo o nada)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/proyectos/{{proyectoRef}}-sin-stock/compromisos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "proyectos",
+                "{{proyectoRef}}-sin-stock",
+                "compromisos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gravedad\": \"MEDIA\",\n  \"compromisos\": [\n    {\n      \"codigoNacional\": \"ONG-0003\",\n      \"items\": [\n        {\n          \"categoria\": \"AGUA_POTABLE\",\n          \"cantidad\": 999999\n        }\n      ]\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409', () => pm.response.to.have.status(409));",
+                  "const faltante = pm.response.json().faltantes[0];",
+                  "pm.test('Detalla el faltante', () => {",
+                  "  pm.expect(faltante.categoria).to.eql('AGUA_POTABLE');",
+                  "  pm.expect(faltante.pedido).to.eql(999999);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5. Cerrar proyecto y liberar recursos",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/proyectos/{{proyectoRef}}/cerrar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "proyectos",
+                "{{proyectoRef}}",
+                "cerrar"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Finalizado con dos ONGs liberadas', () => {",
+                  "  pm.expect(body.estado).to.eql('FINALIZADO');",
+                  "  pm.expect(body.liberados).to.have.length(2);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6. Cerrar de nuevo (idempotente)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/proyectos/{{proyectoRef}}/cerrar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "proyectos",
+                "{{proyectoRef}}",
+                "cerrar"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('No libera nada mas', () => pm.expect(pm.response.json().liberados).to.have.length(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "7. Comprometer en un proyecto finalizado (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/proyectos/{{proyectoRef}}/compromisos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "proyectos",
+                "{{proyectoRef}}",
+                "compromisos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gravedad\": \"ALTA\",\n  \"compromisos\": [\n    {\n      \"codigoNacional\": \"ORG-0002\",\n      \"items\": [\n        {\n          \"categoria\": \"PERSONAL\",\n          \"cantidad\": 1\n        }\n      ]\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('409', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "8. Cerrar un proyecto inexistente (404)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/proyectos/no-existe-{{proyectoRef}}/cerrar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "proyectos",
+                "no-existe-{{proyectoRef}}",
+                "cerrar"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

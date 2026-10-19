@@ -1,0 +1,71 @@
+/// La respuesta a una emergencia, vista desde el Sistema Nacional.
+///
+/// No conoce el modelo de emergencias de la aplicacion web: solo una
+/// referencia externa (el caseId de Bonita) que generan los sistemas que lo
+/// invocan. Agrupa los compromisos de todas las ONGs adjudicadas y es la
+/// unidad que se cierra en el eslabon 7.
+model Proyecto {
+  id                Int            @id @default(autoincrement())
+  referenciaExterna String         @unique @map("referencia_externa") @db.VarChar(50)
+  gravedad          NivelGravedad
+  estado            EstadoProyecto @default(EN_EJECUCION)
+
+  fechaInicio DateTime  @default(now()) @map("fecha_inicio")
+  fechaCierre DateTime? @map("fecha_cierre")
+
+  compromisos Compromiso[]
+
+  @@map("proyectos")
+}
+
+enum EstadoProyecto {
+  EN_EJECUCION
+  FINALIZADO
+}
+
+/// Lo que una organizacion comprometio en un proyecto.
+///
+/// Uno por organizacion por proyecto: si Bonita reintenta el compromiso tras
+/// un timeout, la restriccion unica impide comprometer dos veces lo mismo.
+model Compromiso {
+  id Int @id @default(autoincrement())
+
+  proyectoId Int      @map("proyecto_id")
+  proyecto   Proyecto @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+
+  organizacionId Int          @map("organizacion_id")
+  organizacion   Organizacion @relation(fields: [organizacionId], references: [id])
+
+  estado EstadoCompromiso @default(ACTIVO)
+
+  fechaCompromiso DateTime  @default(now()) @map("fecha_compromiso")
+  fechaLiberacion DateTime? @map("fecha_liberacion")
+
+  items CompromisoItem[]
+
+  @@unique([proyectoId, organizacionId])
+  @@index([organizacionId])
+  @@map("compromisos")
+}
+
+enum EstadoCompromiso {
+  ACTIVO
+  LIBERADO
+}
+
+/// Que recurso y cuanto quedo bloqueado. Se conserva al liberar: es la
+/// trazabilidad de lo que la ONG aporto al proyecto.
+model CompromisoItem {
+  id Int @id @default(autoincrement())
+
+  compromisoId Int        @map("compromiso_id")
+  compromiso   Compromiso @relation(fields: [compromisoId], references: [id], onDelete: Cascade)
+
+  recursoId Int     @map("recurso_id")
+  recurso   Recurso @relation(fields: [recursoId], references: [id])
+
+  cantidad Int
+
+  @@unique([compromisoId, recursoId])
+  @@map("compromiso_items")
+}

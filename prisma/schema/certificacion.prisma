@@ -1,0 +1,35 @@
+/// Catalogo de certificaciones. Cada una habilita una categoria de recurso:
+/// "Primeros auxilios" habilita PERSONAL, "Manipulacion de alimentos"
+/// habilita ALIMENTOS.
+model Certificacion {
+  id        Int              @id @default(autoincrement())
+  codigo    String           @unique @db.VarChar(20)
+  nombre    String           @db.VarChar(120)
+  categoria CategoriaRecurso
+
+  otorgamientos OrganizacionCertificacion[]
+
+  @@index([categoria])
+  @@map("certificaciones")
+}
+
+/// Certificacion otorgada a una organizacion.
+///
+/// El nivel (1 a 4) dice hasta que gravedad de emergencia puede actuar la
+/// organizacion como lote principal en esa categoria. Con nivel menor al
+/// requerido no queda afuera: entra como apoyo secundario.
+model OrganizacionCertificacion {
+  id Int @id @default(autoincrement())
+
+  organizacionId Int          @map("organizacion_id")
+  organizacion   Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+
+  certificacionId Int           @map("certificacion_id")
+  certificacion   Certificacion @relation(fields: [certificacionId], references: [id])
+
+  nivel            Int
+  fechaVencimiento DateTime @map("fecha_vencimiento") @db.Date
+
+  @@unique([organizacionId, certificacionId])
+  @@map("organizacion_certificaciones")
+}
