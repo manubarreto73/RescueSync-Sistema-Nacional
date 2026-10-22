@@ -1,4 +1,4 @@
-# Sistema Nacional de Gestión de Recursos y Riesgos
+# Sistema Nacional de Gestión de Recursos y Riesgos -
 
 API externa de **RescueSync** — Desarrollo de Software en Sistemas Distribuidos, curso 2026.
 **Entrega 3**: API con autenticación JWT, dockerizada y desplegada en la nube.
